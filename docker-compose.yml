@@ -1,0 +1,10 @@
+services:
+  app:
+    image: gotodo
+    build: 
+      args:
+        - target=dev
+    volumes:
+      - .:/app #ワーキングディレクトリにバインドマウント
+    ports:
+      - "18000:80"
