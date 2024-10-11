@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"testing"
 
@@ -11,6 +12,11 @@ import (
 )
 
 func TestRun(t *testing.T) {
+	// ０：空きポートを割り当て
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("failed to listen port:%v", err)
+	}
 	// キャンセル機能を持つコンテキストを定義
 	ctx, cancel := context.WithCancel(context.Background())
 	// run関数をゴルーチンで回してサーバを起動
@@ -19,10 +25,12 @@ func TestRun(t *testing.T) {
 
 	// HTTP鯖を別ゴルーチンで起動
 	eg.Go(func() error {
-		return run(ctx)
+		return run(ctx, l)
 	})
 	in := "message"
-	resp, err := http.Get("http://localhost:8080/" + in)
+	url := fmt.Sprintf("http://%s/%s", l.Addr().String(), in)
+	t.Logf("try req to:%q", url)
+	resp, err := http.Get(url)
 	if err != nil {
 		t.Errorf("failed to get: %+v", err)
 	}

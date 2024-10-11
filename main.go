@@ -4,21 +4,34 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	if err := run(context.Background()); err != nil {
+	if len(os.Args) != 2 {
+		log.Printf("need port number\n")
+		os.Exit(1)
+	}
+	// コマンドの引数からポート番号取得
+	p := os.Args[1]
+	// リッスン：接続を待ち受ける
+	l, err := net.Listen("tcp", ":"+p)
+	if err != nil {
+		log.Fatalf("failed to listen port %s:%v", p, err)
+	}
+	// run関数内でサーバーを起動
+	if err := run(context.Background(), l); err != nil {
 		fmt.Printf("failed to terminate server:%v", err)
 	}
 }
 
 // 外部からのキャンセル操作を受け取るとサーバを修了する
-func run(ctx context.Context) error {
+func run(ctx context.Context, l net.Listener) error {
 	s := http.Server{
-		Addr: ":8080",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "hello,%s", r.URL.Path[1:])
 		}),
@@ -29,7 +42,8 @@ func run(ctx context.Context) error {
 	// エラーを返す
 	eg.Go(func() error {
 		// サーバーが正常修了にShutdownされた時を除く
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		// Serve:リクエストを処理、レスポンスを返す
+		if err := s.Serve(l); err != nil && err != http.ErrServerClosed {
 			log.Printf("failed to close: %+v", err)
 			// エラーは errgroup にわたる
 			return err
