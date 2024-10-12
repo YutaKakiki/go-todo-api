@@ -8,29 +8,32 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/YutaKakiki/go-todo-api/config"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Printf("need port number\n")
-		os.Exit(1)
-	}
-	// コマンドの引数からポート番号取得
-	p := os.Args[1]
-	// リッスン：接続を待ち受ける
-	l, err := net.Listen("tcp", ":"+p)
-	if err != nil {
-		log.Fatalf("failed to listen port %s:%v", p, err)
-	}
 	// run関数内でサーバーを起動
-	if err := run(context.Background(), l); err != nil {
+	if err := run(context.Background()); err != nil {
 		fmt.Printf("failed to terminate server:%v", err)
+		os.Exit(1)
 	}
 }
 
 // 外部からのキャンセル操作を受け取るとサーバを修了する
-func run(ctx context.Context, l net.Listener) error {
+func run(ctx context.Context) error {
+	// 環境変数の構造体を取得
+	cfg, err := config.New()
+	if err != nil {
+		return err
+	}
+	// 環境変数からPORT番号を指定してリッスン
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
+	if err != nil {
+		log.Fatalf("failed to listen port %d: %v", cfg.Port, err)
+	}
+	url := fmt.Sprintf("http://%s", l.Addr().String())
+	log.Printf("start with %v", url)
 	s := http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "hello,%s", r.URL.Path[1:])
