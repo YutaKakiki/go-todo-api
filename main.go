@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/YutaKakiki/go-todo-api/config"
 	"golang.org/x/sync/errgroup"
@@ -22,6 +25,10 @@ func main() {
 
 // 外部からのキャンセル操作を受け取るとサーバを修了する
 func run(ctx context.Context) error {
+	// シグナルを受信するためのコンテキストを作成
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	// シグナルの監視をやめてリソースを開放
+	defer stop()
 	// 環境変数の構造体を取得
 	cfg, err := config.New()
 	if err != nil {
@@ -36,6 +43,8 @@ func run(ctx context.Context) error {
 	log.Printf("start with %v", url)
 	s := http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// コマンドラインでグレースフルシャットダウンを試す用
+			time.Sleep(5 * time.Second)
 			fmt.Fprintf(w, "hello,%s", r.URL.Path[1:])
 		}),
 	}
