@@ -22,10 +22,10 @@ jobs:
     - uses: actions/setup-go@v3
       with:
         go-version: '>=1.18'
+    - uses: actions/checkout@v3
     - run: |
         go install github.com/sqldef/sqldef/cmd/mysqldef@latest
         mysqldef -u todo -p todo -h 127.0.0.1 -P 3306 todo < ./_tools/mysql/schema.sql 
-    - uses: actions/checkout@v3
     - run: go test ./... -coverprofile=coverage.out
     - name: report coverage
       uses: k1LoW/octocov-action@v0
