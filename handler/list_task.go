@@ -5,10 +5,13 @@ import (
 
 	"github.com/YutaKakiki/go-todo-api/entity"
 	"github.com/YutaKakiki/go-todo-api/store"
+	"github.com/jmoiron/sqlx"
 )
 
 type ListTask struct {
-	Store *store.TaskStore
+	// Store *store.TaskStore
+	DB   *sqlx.DB
+	Repo *store.Repository
 }
 
 // 返ってくるtaskの構造
@@ -21,7 +24,13 @@ type task struct {
 func (lt *ListTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	// Storeの中のtaskを取得
-	tasks := lt.Store.GetAll()
+	// tasks := lt.Store.GetAll()
+	tasks, err := lt.Repo.ListTask(ctx, lt.DB)
+	if err != nil {
+		RespondJSON(ctx, w, &ErrResponse{
+			Message: err.Error(),
+		}, http.StatusInternalServerError)
+	}
 	// 空の構造体を定義（ここに入れてく）
 	rsp := []task{}
 	for _, t := range tasks {
