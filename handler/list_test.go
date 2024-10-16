@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/YutaKakiki/go-todo-api/entity"
-	"github.com/YutaKakiki/go-todo-api/store"
 	"github.com/YutaKakiki/go-todo-api/testutil"
 )
 
@@ -17,17 +18,17 @@ func TestListTask(t *testing.T) {
 		rspFile string
 	}
 	tests := map[string]struct {
-		tasks map[entity.TaskID]*entity.Task
+		tasks []*entity.Task
 		want  want
 	}{
 		"ok": {
-			tasks: map[entity.TaskID]*entity.Task{
-				1: {
+			tasks: []*entity.Task{
+				{
 					ID:     1,
 					Title:  "test1",
 					Status: "todo",
 				},
-				2: {
+				{
 					ID:     2,
 					Title:  "test2",
 					Status: "done",
@@ -39,7 +40,7 @@ func TestListTask(t *testing.T) {
 			},
 		},
 		"empty": {
-			tasks: map[entity.TaskID]*entity.Task{},
+			tasks: []*entity.Task{},
 			want: want{
 				status:  http.StatusOK,
 				rspFile: "testdata/list_task/empty_rsp.json.golden",
@@ -57,8 +58,16 @@ func TestListTask(t *testing.T) {
 				// LoadFileでかえってきたバイトスライスをio.Readerに
 				nil,
 			)
+			// モックを用意
+			moq := &ListTasksServiceMock{}
+			moq.ListTaskFunc = func(ctx context.Context) (entity.Tasks, error) {
+				if tt.tasks != nil {
+					return tt.tasks, nil
+				}
+				return nil, errors.New("error from mock")
+			}
 			sut := ListTask{
-				Store: &store.TaskStore{Tasks: tt.tasks},
+				Service: moq,
 			}
 			sut.ServeHTTP(w, r)
 			rsp := w.Result()

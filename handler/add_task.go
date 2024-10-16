@@ -5,15 +5,12 @@ import (
 	"net/http"
 
 	"github.com/YutaKakiki/go-todo-api/entity"
-	"github.com/YutaKakiki/go-todo-api/store"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 )
 
 type AddTask struct {
-	// Store     *store.TaskStore
-	DB        *sqlx.DB
-	Repo      *store.Repository
+	// DBに依存せず、インタフェースに依存
+	Service   AddTaskService
 	Validator *validator.Validate
 }
 
@@ -42,13 +39,9 @@ func (at *AddTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}, http.StatusBadRequest)
 		return
 	}
-	// ボディにあるタイトルから、新たなentity.Taskオブジェクトを生成
-	t := &entity.Task{
-		Title:  b.Title,
-		Status: entity.TaskStatusTodo, //定数でステータスは定義してある
-	}
-	// id, err := store.Tasks.Add(t)
-	err = at.Repo.AddTask(ctx, at.DB, t)
+	// DBにインサートする
+	// serviceパッケージのAddTaskを使用する
+	t, err := at.Service.AddTask(ctx, b.Title)
 	if err != nil {
 		RespondJSON(ctx, w, ErrResponse{
 			Message: err.Error(),

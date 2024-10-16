@@ -4,14 +4,10 @@ import (
 	"net/http"
 
 	"github.com/YutaKakiki/go-todo-api/entity"
-	"github.com/YutaKakiki/go-todo-api/store"
-	"github.com/jmoiron/sqlx"
 )
 
 type ListTask struct {
-	// Store *store.TaskStore
-	DB   *sqlx.DB
-	Repo *store.Repository
+	Service ListTasksService
 }
 
 // 返ってくるtaskの構造
@@ -23,9 +19,7 @@ type task struct {
 
 func (lt *ListTask) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// Storeの中のtaskを取得
-	// tasks := lt.Store.GetAll()
-	tasks, err := lt.Repo.ListTask(ctx, lt.DB)
+	tasks, err := lt.Service.ListTask(ctx)
 	if err != nil {
 		RespondJSON(ctx, w, &ErrResponse{
 			Message: err.Error(),

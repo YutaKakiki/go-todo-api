@@ -7,6 +7,7 @@ import (
 	"github.com/YutaKakiki/go-todo-api/clock"
 	"github.com/YutaKakiki/go-todo-api/config"
 	"github.com/YutaKakiki/go-todo-api/handler"
+	"github.com/YutaKakiki/go-todo-api/service"
 	"github.com/YutaKakiki/go-todo-api/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -28,9 +29,18 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 	}
 	r := store.Repository{Clocker: clock.RealClocker{}}
 
-	at := &handler.AddTask{DB: db, Repo: &r, Validator: v}
+	at := &handler.AddTask{
+		// ServiceフィールドはAddTaskService型：AddTaskメソッドを実装していること
+		Service:   &service.AddTask{DB: db, Repo: &r}, //TaskAdder型であるRepoを通して、DBとやり取り
+		Validator: v,
+	}
 	mux.Post("/tasks", at.ServeHTTP)
-	lt := &handler.ListTask{DB: db, Repo: &r}
+	lt := &handler.ListTask{
+		Service: &service.ListTask{
+			DB:   db,
+			Repo: &r,
+		},
+	}
 	mux.Get("/tasks", lt.ServeHTTP)
 	return mux, cleanup, nil
 }
