@@ -28,13 +28,14 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 		return nil, cleanup, err
 	}
 	r := store.Repository{Clocker: clock.RealClocker{}}
-
+	// 埋め込み型によるDI
 	at := &handler.AddTask{
 		// ServiceフィールドはAddTaskService型：AddTaskメソッドを実装していること
 		Service:   &service.AddTask{DB: db, Repo: &r}, //TaskAdder型であるRepoを通して、DBとやり取り
 		Validator: v,
 	}
 	mux.Post("/tasks", at.ServeHTTP)
+	// 埋め込み型によるDI
 	lt := &handler.ListTask{
 		Service: &service.ListTask{
 			DB:   db,
@@ -42,5 +43,14 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 		},
 	}
 	mux.Get("/tasks", lt.ServeHTTP)
+	ru := &handler.RegisterUser{
+		Service: &service.RegisterUser{
+			DB:   db,
+			Repo: &r,
+		},
+		Validator: v,
+	}
+	mux.Post("/register", ru.ServeHTTP)
+
 	return mux, cleanup, nil
 }
