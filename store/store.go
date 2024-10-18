@@ -1,15 +1,17 @@
 package store
 
+import "errors"
+
 // import (
 // 	"errors"
 
 // 	"github.com/YutaKakiki/go-todo-api/entity"
 // )
 
-// var (
-// 	Tasks       = &TaskStore{Tasks: map[entity.TaskID]*entity.Task{}}
-// 	ErrNotFound = errors.New("not found")
-// )
+var (
+	// Tasks       = &TaskStore{Tasks: map[entity.TaskID]*entity.Task{}}
+	ErrNotFound = errors.New("not found")
+)
 
 // type TaskStore struct {
 // 	LastID entity.TaskID
