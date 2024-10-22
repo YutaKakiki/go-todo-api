@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/YutaKakiki/go-todo-api/auth"
 	"github.com/YutaKakiki/go-todo-api/entity"
 	"github.com/YutaKakiki/go-todo-api/store"
 )
@@ -15,9 +16,15 @@ type AddTask struct {
 
 // ハンドラによって呼び出される
 func (a *AddTask) AddTask(ctx context.Context, title string) (*entity.Task, error) {
+	// contextからUserIDを取得
+	id, ok := auth.GetUserID(ctx)
+	if !ok {
+		return nil, fmt.Errorf("user_id not found")
+	}
 	t := &entity.Task{
 		Title:  title,
 		Status: entity.TaskStatusTodo,
+		UserID: id,
 	}
 	// 実際にDBに挿入する
 	err := a.Repo.AddTask(ctx, a.DB, t)

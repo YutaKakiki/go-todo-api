@@ -21,6 +21,7 @@ type Server struct {
 // ルーティングの設定を引数で受け取り、ルーティングの責務を取り除く
 func NewServer(l net.Listener, mux http.Handler) *Server {
 	return &Server{
+		// コンストラクタインジェクション
 		srv: &http.Server{Handler: mux},
 		l:   l,
 	}
@@ -47,6 +48,7 @@ func (s *Server) Run(ctx context.Context) error {
 	})
 
 	// 引数として受け取ったctxからキャンセル通知を待つ
+	// errgroup内でエラーが出たら or stopされたら
 	<-ctx.Done()
 	// サーバーをシャットダウン
 	if err := s.srv.Shutdown(context.Background()); err != nil {

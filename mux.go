@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/YutaKakiki/go-todo-api/auth"
 	"github.com/YutaKakiki/go-todo-api/clock"
 	"github.com/YutaKakiki/go-todo-api/config"
 	"github.com/YutaKakiki/go-todo-api/handler"
@@ -27,14 +28,35 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 	if err != nil {
 		return nil, cleanup, err
 	}
-	r := store.Repository{Clocker: clock.RealClocker{}}
+
+	clock := clock.RealClocker{}
+	r := store.Repository{Clocker: clock}
+
+	// redisクライアント
+	rcli, err := store.NewKVS(ctx, cfg)
+	if err != nil {
+		return nil, cleanup, err
+	}
+	jwt, err := auth.NewJWTer(rcli, clock)
+	if err != nil {
+		return nil, cleanup, err
+	}
+	l := &handler.Login{
+		Service: &service.Login{
+			DB:             db,
+			Repo:           &r,
+			TokenGenerator: jwt,
+		},
+		Validator: v,
+	}
+	mux.Post("/login", l.ServeHTTP)
+
 	// 埋め込み型によるDI
 	at := &handler.AddTask{
 		// ServiceフィールドはAddTaskService型：AddTaskメソッドを実装していること
 		Service:   &service.AddTask{DB: db, Repo: &r}, //TaskAdder型であるRepoを通して、DBとやり取り
 		Validator: v,
 	}
-	mux.Post("/tasks", at.ServeHTTP)
 	// 埋め込み型によるDI
 	lt := &handler.ListTask{
 		Service: &service.ListTask{
@@ -42,7 +64,14 @@ func NewMux(ctx context.Context, cfg *config.Config) (http.Handler, func(), erro
 			Repo: &r,
 		},
 	}
-	mux.Get("/tasks", lt.ServeHTTP)
+
+	// ミドルウェアを使用するサブルーター
+	mux.Route("/tasks", func(r chi.Router) {
+		r.Use(handler.AuthMiddleware(jwt)) //指定したミドルウェアをサブルーター内の全てに適用
+		r.Post("/", at.ServeHTTP)
+		r.Get("/", lt.ServeHTTP)
+	})
+
 	ru := &handler.RegisterUser{
 		Service: &service.RegisterUser{
 			DB:   db,

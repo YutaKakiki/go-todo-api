@@ -68,7 +68,9 @@ type Queryer interface {
 	Preparer
 	QueryxContext(ctx context.Context, query string, args ...any) (*sqlx.Rows, error)
 	QueryRowxContext(ctx context.Context, query string, args ...any) *sqlx.Row
+	// １つのクエリ
 	GetContext(ctx context.Context, dest interface{}, query string, args ...any) error
+	// 複数のクエリ
 	SelectContext(ctx context.Context, dest interface{}, query string, args ...any) error
 }
 
